@@ -295,8 +295,8 @@ class VASE_NET_v1(nn.Module):
         return std * x21
 
 if __name__ == "__main__":
-    input1 = torch.randn(32, 1, 64000)
-    input2 = torch.randn(32, 120, 256)
+    input1 = torch.randn(128, 1, 64000)
+    input2 = torch.randn(128, 120, 256)
     model = VASE_NET_v1()
     out = model(input1, input2)
     print(out.size())

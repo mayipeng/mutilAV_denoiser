@@ -132,28 +132,7 @@ def train(epoch, va_net, pnet, rnet, onet, optimizer, trainloader, criterion):
         VIDEO PROCESS
         """
         print('process video...')
-        # video = []
-        # video_features_b = []
-        # for frames in mixture[0]:
-        #     video_features = []
-        #     for frame in frames:
-        #         frame = frame.numpy()
-        #         frame = Image.fromarray(frame)  # 转换为PIL
-        #         bounding_boxes, landmarks, features = detect_faces_pro(pnet, rnet, onet, frame)
-        #         if len(features) != 256:
-        #             features = np.zeros(256)
-        #         video_features.append(list(features))
-        #
-        #         """
-        #         VIDEO VISUALIZATION
-        #         """
-        #         # img_copy = show_bboxes(frame, bounding_boxes, landmarks)
-        #         # img = cv2.cvtColor(np.asarray(img_copy), cv2.COLOR_RGB2BGR)  # BGR
-        #         # video.append(img)
-        #
-        #     video_features_b.append(video_features)
-        # video_features_b = np.asarray(video_features_b)
-        video_features_b = torch.zeros(16, 120, 256).to(device)  # [16, 120, 256]
+        video_features_b = torch.zeros(128, 120, 256).to(device)  # [16, 120, 256]
 
         """
         AUDIO PROCESS
@@ -166,6 +145,8 @@ def train(epoch, va_net, pnet, rnet, onet, optimizer, trainloader, criterion):
         """
         print('training...')
         optimizer.zero_grad()
+        print(mixture.size)
+        print(video_features_b.size)
         outputs = va_net(mixture, video_features_b)
         loss = F.smooth_l1_loss(outputs, clean)
         loss.backward()
@@ -199,28 +180,7 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
             VIDEO PROCESS
             """
             print('process video...')
-            # video = []
-            # video_features_b = []
-            # for frames in mixture[0]:
-            #     video_features = []
-            #     for frame in frames:
-            #         frame = frame.numpy()
-            #         frame = Image.fromarray(frame)  # 转换为PIL
-            #         bounding_boxes, landmarks, features = detect_faces_pro(pnet, rnet, onet, frame)
-            #         if len(features) != 256:
-            #             features = np.zeros(256)
-            #         video_features.append(list(features))
-            #
-            #         """
-            #         VIDEO VISUALIZATION
-            #         """
-            #         # img_copy = show_bboxes(frame, bounding_boxes, landmarks)
-            #         # img = cv2.cvtColor(np.asarray(img_copy), cv2.COLOR_RGB2BGR)  # BGR
-            #         # video.append(img)
-            #
-            #     video_features_b.append(video_features)
-            # video_features_b = np.asarray(video_features_b)
-            video_features_b = torch.zeros(16, 120, 256).to(device)  # [16, 120, 256]
+            video_features_b = torch.zeros(128, 120, 256).to(device)  # [16, 120, 256]
 
             """
             AUDIO PROCESS
