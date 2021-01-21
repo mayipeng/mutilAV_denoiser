@@ -30,8 +30,15 @@ parser.add_argument("-R", "--resume", action="store_true", default=False,
 args = parser.parse_args()
 basedir_to_save = "/home2/mayipeng/myp_mutilAV/TCDTIMIT/"
 basedir = "/home3/zhangzhan/TCDTIMITprocessing/downloadTCDTIMIT/volunteers/01M/Clips/straightcam/"
-train_path = "/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"#"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
-test_path = "/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"#"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
+
+train_path = "/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
+#"/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
+#"/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
+#"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
+test_path = "/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
+#"/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
+#"/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
+#"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
 best_enh_sdr = float('-inf')
 
 if args.device:
@@ -51,23 +58,23 @@ def data_load(train_path, test_path, basedir_to_save, basedir):
     kwargs = {"matching": 'sort', "sample_rate": 16000}
     pad = True
     trainPath = train_path
-    train_dataset = AVdataProcess.NoisyCleanSet(
+    train_dataset = AVdataProcess.NoisyCleanSet_onlyAudio(
         trainPath, basedir_to_save, basedir, length=length, stride=stride, pad=pad, **kwargs)
     train_data_loader = DataLoader(
         shuffle=False,
         dataset=train_dataset,
         batch_size=128,
-        num_workers=32,
+        num_workers=128,
         drop_last=True
     )
     testPath = test_path
-    test_dataset = AVdataProcess.NoisyCleanSet(
+    test_dataset = AVdataProcess.NoisyCleanSet_onlyAudio(
         testPath, basedir_to_save, basedir, length=length, stride=stride, pad=pad, **kwargs)
     test_data_loader = DataLoader(
         shuffle=False,
         dataset=test_dataset,
         batch_size=128,
-        num_workers=32,
+        num_workers=128,
         drop_last=True
     )
     return train_data_loader, test_data_loader
@@ -90,7 +97,7 @@ def model_load():
     onet = ONet()
     onet.eval()
 
-    v_net = VASE_NET_v1()
+    v_net = VASE_NET_audio() #VASE_NET_v1()
     v_net = v_net.to(device)
     if device == 'cuda':
         v_net = torch.nn.DataParallel(v_net)
@@ -103,7 +110,7 @@ def model_load():
         # Load checkpoint.
         print('==> Resuming from checkpoint..')
         assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-        checkpoint = torch.load('./checkpoint/VASE_NET_v1.pth')
+        checkpoint = torch.load('./checkpoint/ASE_NET_v2.pth')
         v_net.load_state_dict(checkpoint['net'])
         best_enh_sdr = checkpoint['acc']
         start_epoch = checkpoint['epoch']
@@ -145,8 +152,6 @@ def train(epoch, va_net, pnet, rnet, onet, optimizer, trainloader, criterion):
         """
         print('training...')
         optimizer.zero_grad()
-        print(mixture.size)
-        print(video_features_b.size)
         outputs = va_net(mixture, video_features_b)
         loss = F.smooth_l1_loss(outputs, clean)
         loss.backward()
@@ -228,13 +233,13 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ASE_v1.pth')
+        torch.save(state, './checkpoint/ASE_v2.pth')
         best_enh_sdr = now_enh_sdr
 
 
 
 def main():
-    writer = SummaryWriter('logs/train_ASE_v1')
+    writer = SummaryWriter('logs/train_ASE_v2')
     train_data_loader, test_data_loader = data_load(train_path, test_path, basedir_to_save, basedir)
     v_net, pnet, rnet, onet, criterion, optimizer, scheduler = model_load()
     for epoch in range(450):
