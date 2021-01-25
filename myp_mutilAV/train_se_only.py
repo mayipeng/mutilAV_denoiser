@@ -31,11 +31,11 @@ args = parser.parse_args()
 basedir_to_save = "/home2/mayipeng/myp_mutilAV/TCDTIMIT/"
 basedir = "/home3/zhangzhan/TCDTIMITprocessing/downloadTCDTIMIT/volunteers/01M/Clips/straightcam/"
 
-train_path = "/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
+train_path = "/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
 #"/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
 #"/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
 #"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
-test_path = "/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
+test_path = "/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
 #"/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
 #"/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
 #"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
@@ -64,7 +64,7 @@ def data_load(train_path, test_path, basedir_to_save, basedir):
         shuffle=False,
         dataset=train_dataset,
         batch_size=128,
-        num_workers=128,
+        num_workers=0,
         drop_last=True
     )
     testPath = test_path
@@ -74,7 +74,7 @@ def data_load(train_path, test_path, basedir_to_save, basedir):
         shuffle=False,
         dataset=test_dataset,
         batch_size=128,
-        num_workers=128,
+        num_workers=0,
         drop_last=True
     )
     return train_data_loader, test_data_loader
@@ -97,7 +97,7 @@ def model_load():
     onet = ONet()
     onet.eval()
 
-    v_net = VASE_NET_audio() #VASE_NET_v1()
+    v_net = VASE_NET_v1()#VASE_NET_audio_v2() #VASE_NET_v1()
     v_net = v_net.to(device)
     if device == 'cuda':
         v_net = torch.nn.DataParallel(v_net)
@@ -218,8 +218,9 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
 
             # progress_bar(batch_idx, len(valloader), 'val:  Loss: %.3f | ref_stoi: %.3f | enh_stoi: %.3f | ref_sdr: %.3f | enh_sdr: %.3f'
             #     % (test_loss/(batch_idx+1), (sum_ref_stoi/(batch_idx+1)), (sum_enh_stoi/(batch_idx+1)), (sum_ref_sdr/(batch_idx+1)), (sum_enh_sdr/(batch_idx+1))))
+        print("*********************************************************************")
         print("val_Loss: ", test_loss/(batch_idx+1), " | ", "ref_stoi: ", sum_ref_stoi/(batch_idx+1), " | ", "enh_stoi: ", sum_enh_stoi/(batch_idx+1), " | ", "ref_sdr: ", sum_ref_sdr/(batch_idx+1), " | ", "enh_sdr: ", sum_enh_sdr/(batch_idx+1))
-
+        print("*********************************************************************")
 
     # Save checkpoint.
     now_enh_sdr = sum_enh_sdr/len(valloader)
