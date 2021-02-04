@@ -65,6 +65,7 @@ class CRNN2(nn.Module):
         # c = F.pad(c, (0, self.valid_length(length) - length))
         # print(x.size())
 
+
         x0 = self.E1(x)
         x1 = self.R(x0)
         x2 = self.E2(x1)

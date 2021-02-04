@@ -9,6 +9,7 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 
 from torch.utils.data import DataLoader
+from torch import nn
 from tensorboardX import SummaryWriter
 from PIL import Image
 
@@ -25,17 +26,17 @@ parser = argparse.ArgumentParser(description='EHNET')
 parser.add_argument('-L', '--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('-D', '--device', default='0,1,2', type=str,
                     help="Specify the GPU visible in the experiment, e.g. '1,2,3'.")
-parser.add_argument("-R", "--resume", action="store_true", default=False,
+parser.add_argument("-R", "--resume", action="store_true", default=True,
                     help="Whether to resume training from a recent breakpoint.")
 args = parser.parse_args()
 basedir_to_save = "/home2/mayipeng/myp_mutilAV/TCDTIMIT/"
 basedir = "/home3/zhangzhan/TCDTIMITprocessing/downloadTCDTIMIT/volunteers/01M/Clips/straightcam/"
 
-train_path = "/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
+train_path = "/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
 #"/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
 #"/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
 #"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
-test_path = "/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
+test_path = "/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tt/"
 #"/home2/mayipeng/myp_mutilAV/egs/NSDTSEA/tr/"
 #"/home2/mayipeng/myp_mutilAV/utils/egs/TCDTIMIT_Babble_5/tr/"
 #"/home2/mayipeng/myp_mutilAV/egs/TCDTIMIT/tr/"
@@ -63,7 +64,7 @@ def data_load(train_path, test_path, basedir_to_save, basedir):
     train_data_loader = DataLoader(
         shuffle=False,
         dataset=train_dataset,
-        batch_size=128,
+        batch_size=2,
         num_workers=0,
         drop_last=True
     )
@@ -73,7 +74,7 @@ def data_load(train_path, test_path, basedir_to_save, basedir):
     test_data_loader = DataLoader(
         shuffle=False,
         dataset=test_dataset,
-        batch_size=128,
+        batch_size=2,
         num_workers=0,
         drop_last=True
     )
@@ -110,9 +111,10 @@ def model_load():
         # Load checkpoint.
         print('==> Resuming from checkpoint..')
         assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-        checkpoint = torch.load('./checkpoint/ASE_NET_v2.pth')
+        v_net = nn.DataParallel(v_net)
+        checkpoint = torch.load('./checkpoint/VASE_NET_v1.pth')
         v_net.load_state_dict(checkpoint['net'])
-        best_enh_sdr = checkpoint['acc']
+        # best_enh_sdr = checkpoint['acc']
         start_epoch = checkpoint['epoch']
         print("start_epoch: ", start_epoch)
 
@@ -138,13 +140,13 @@ def train(epoch, va_net, pnet, rnet, onet, optimizer, trainloader, criterion):
         """
         VIDEO PROCESS
         """
-        print('process video...')
+        # print('process video...')
         video_features_b = torch.zeros(128, 120, 256).to(device)  # [16, 120, 256]
 
         """
         AUDIO PROCESS
         """
-        print('process audio...')
+        # print('process audio...')
         mixture, clean = mixture[1].to(device), clean[1].to(device)
 
         """
@@ -157,7 +159,7 @@ def train(epoch, va_net, pnet, rnet, onet, optimizer, trainloader, criterion):
         loss.backward()
         optimizer.step()
         train_loss += loss.item()
-        print("batch_idx: ", batch_idx, " | batch_loss: ", loss.item())
+        # print("batch_idx: ", batch_idx, " | batch_loss: ", loss.item())
 
     print("\n********** train_loss: ", train_loss/(batch_idx+1))
     return train_loss
@@ -184,13 +186,13 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
             """
             VIDEO PROCESS
             """
-            print('process video...')
+            # print('process video...')
             video_features_b = torch.zeros(128, 120, 256).to(device)  # [16, 120, 256]
 
             """
             AUDIO PROCESS
             """
-            print('process audio...')
+            # print('process audio...')
             mixture, clean = mixture[1].to(device), clean[1].to(device)
 
             """
@@ -200,7 +202,7 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
             outputs = va_net(mixture, video_features_b)
             loss = F.smooth_l1_loss(outputs, clean)
             test_loss += loss.item()
-            print("batch_idx: ", batch_idx, " | batch_loss: ", loss.item())
+            # print("batch_idx: ", batch_idx, " | batch_loss: ", loss.item())
 
             predicted = outputs
             targets = clean
@@ -234,13 +236,13 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ASE_v2.pth')
+        torch.save(state, './checkpoint/ASE_v1.pth')
         best_enh_sdr = now_enh_sdr
 
 
 
 def main():
-    writer = SummaryWriter('logs/train_ASE_v2')
+    writer = SummaryWriter('logs/train_ASE_v3')
     train_data_loader, test_data_loader = data_load(train_path, test_path, basedir_to_save, basedir)
     v_net, pnet, rnet, onet, criterion, optimizer, scheduler = model_load()
     for epoch in range(450):
