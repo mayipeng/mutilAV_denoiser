@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description='EHNET')
 parser.add_argument('-L', '--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('-D', '--device', default='0,1,2', type=str,
                     help="Specify the GPU visible in the experiment, e.g. '1,2,3'.")
-parser.add_argument("-R", "--resume", action="store_true", default=True,
+parser.add_argument("-R", "--resume", action="store_true", default=False,
                     help="Whether to resume training from a recent breakpoint.")
 args = parser.parse_args()
 basedir_to_save = "/home2/mayipeng/myp_mutilAV/TCDTIMIT/"
@@ -44,8 +44,8 @@ best_enh_sdr = float('-inf')
 
 if args.device:
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-# device = 'cpu'
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
 
 """
 数据加载模块
@@ -64,7 +64,7 @@ def data_load(train_path, test_path, basedir_to_save, basedir):
     train_data_loader = DataLoader(
         shuffle=False,
         dataset=train_dataset,
-        batch_size=32,
+        batch_size=128,
         num_workers=0,
         drop_last=True
     )
@@ -74,7 +74,7 @@ def data_load(train_path, test_path, basedir_to_save, basedir):
     test_data_loader = DataLoader(
         shuffle=False,
         dataset=test_dataset,
-        batch_size=32,
+        batch_size=128,
         num_workers=0,
         drop_last=True
     )
@@ -141,7 +141,7 @@ def train(epoch, va_net, pnet, rnet, onet, optimizer, trainloader, criterion):
         VIDEO PROCESS
         """
         # print('process video...')
-        video_features_b = torch.zeros(32, 120, 256).to(device)  # [16, 120, 256]
+        video_features_b = torch.zeros(128, 120, 256).to(device)  # [16, 120, 256]
 
         """
         AUDIO PROCESS
@@ -152,7 +152,7 @@ def train(epoch, va_net, pnet, rnet, onet, optimizer, trainloader, criterion):
         """
         VASE_NET
         """
-        print('training...')
+        # print('training...')
         optimizer.zero_grad()
         outputs = va_net(mixture, video_features_b)
         loss = F.smooth_l1_loss(outputs, clean)
@@ -198,7 +198,7 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
             """
             VASE_NET
             """
-            print('valing...')
+            # print('valing...')
             outputs = va_net(mixture, video_features_b)
             loss = F.smooth_l1_loss(outputs, clean)
             test_loss += loss.item()
@@ -236,13 +236,13 @@ def val(epoch, va_net, pnet, rnet, onet, valloader, criterion):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ASE_v1.pth')
+        torch.save(state, './checkpoint/ASE_cpu_v1.pth')
         best_enh_sdr = now_enh_sdr
 
 
 
 def main():
-    writer = SummaryWriter('logs/train_ASE_v3')
+    writer = SummaryWriter('logs/train_ASE_cpu_v3')
     train_data_loader, test_data_loader = data_load(train_path, test_path, basedir_to_save, basedir)
     v_net, pnet, rnet, onet, criterion, optimizer, scheduler = model_load()
     for epoch in range(450):
